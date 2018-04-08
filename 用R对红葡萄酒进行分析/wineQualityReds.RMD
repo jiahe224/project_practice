@@ -1,0 +1,632 @@
+Wine Quality Exploration
+========================================================
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE, echo=FALSE)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# 加载你最终使用的所有组件
+# 在这个代码块的分析中。
+
+# 注意，在这个代码块中，将参数 "echo" 设为假。
+# This prevents the code from displaying in the knitted HTML output.这可以避免代码混入 HTML 输出显示。
+# 应当在文件中，对所有代码块设为 echo=FALSE 。
+
+library(ggplot2)
+library(dplyr)
+library(knitr)
+library('GGally')
+```
+
+
+#### 数据及项目简介：
+#### 我们对红葡萄酒数据集进行分析
+#### 这个数据集包含1,599 种红酒，以及 11 个关于酒的化学成分的变量。
+#### 至少 3 名葡萄酒专家对每种酒的质量进行了评分，分数在 0（非常差）和10（非常好）之间。
+#### 我们将通过分析以得知哪些化学成分影响红葡萄酒的质量
+
+```{r echo=FALSE}
+# 加载数据
+wine_red <- read.csv('wineQualityReds.csv')
+wine_red <- wine_red[,-1]
+```
+
+#### 变量类型概况：
+
+```{r echo=FALSE}
+str(wine_red)
+```
+
+#### 变量统计概况：
+
+```{r echo=FALSE}
+summary(wine_red)
+```
+
+#### 我们的数据集由十二个变量组成，有1599个观测值。
+
+
+# 单变量绘图选择
+
+#### 查看酒的质量的评分分布：
+
+```{r echo=FALSE, Univariate_Plots}
+ggplot(wine_red,aes(x=quality)) +
+  geom_bar() +
+  scale_x_continuous(breaks=seq(3,8,1)) +
+  ggtitle('Bar of Quality')
+```
+
+#### 从上图可以看出，质量基本呈正态分布
+
+#### 查看fixed.acidity的分布：
+
+```{r echo=FALSE}
+qplot(x=fixed.acidity,data=wine_red,binwidth=1) +
+  ggtitle('Histogram of fixed.acidity')
+
+```
+
+#### 上图表明fixed.acidity呈右偏分布,大多数在6~12之间。
+
+
+#### 查看volatile.acidity的分布形态：
+
+```{r echo=FALSE}
+qplot(x=volatile.acidity,data=wine_red,binwidth=0.1) +
+  ggtitle('Histogram of volatile.acidity')
+
+```
+
+#### volatile.acidity也呈右偏分布，但其中有异常值，大多数值在0.25~1之间，我们取其前99%的数绘图：
+
+```{r echo=FALSE}
+qplot(x=volatile.acidity,data=wine_red,binwidth=0.1) +
+  ggtitle('Histogram of volatile.acidity(99%)') +
+  xlim(0,quantile(wine_red$volatile.acidity,0.99))
+
+```
+
+#### 上图可以看到，去掉异常值后，volatile.acidity呈正态分布。
+
+
+
+#### 查看citric.acid的分布：
+
+```{r echo=FALSE}
+qplot(x=citric.acid,data=wine_red,binwidth=0.1) +
+  ggtitle('Histogram of citric.acid')
+
+```
+
+#### 上图可以看出，citric.acid的分布非常集中，仅有少量值比其它略高，最高值可能为异常值。
+
+
+
+#### 查看residual.sugar的分布：
+
+```{r echo=FALSE}
+qplot(x=residual.sugar,data=wine_red,binwidth=1) +
+  ggtitle('Histogram of residual.sugar') +
+  scale_x_continuous(breaks = seq(0,16,2))
+
+```
+
+#### 上图中残糖呈长尾分布，对其取对数进行收敛：
+
+```{r echo=FALSE}
+qplot(x=residual.sugar,data=wine_red,binwidth=0.1) +
+  scale_x_log10() +
+  ggtitle('Histogram of log10(residual.sugar)')
+
+```
+
+#### 收敛后的图呈右偏的正态分布
+
+
+
+#### 查看chlorides的分布：
+
+```{r echo=FALSE}
+qplot(x=chlorides,data=wine_red,binwidth=0.01) +
+  ggtitle('Histogram of chlorides)')
+
+```
+
+#### chlorides的大多数值分布集中，少量值严重右偏，不知是不是数据错误，取其前99%的值:
+
+```{r echo=FALSE}
+
+qplot(x=chlorides,data=wine_red,binwidth=0.02) +
+  xlim(0,quantile(wine_red$chlorides, .99)) +
+  ggtitle('Histogram of Chlorides(99%)')
+
+```
+
+
+
+#### 转换后呈右偏正态分布
+
+
+
+#### 查看total.sulfur.dioxide的分布形态：
+
+```{r echo=FALSE}
+qplot(x=free.sulfur.dioxide,data=wine_red,binwidth=4) +
+  ggtitle('Histogram of total.sulfur.dioxide)')
+
+```
+
+#### total.sulfur.dioxide大部分值在0~30,分布右偏，算不上钟形分布.
+
+
+
+#### 查看total.sulfur.dioxide的分布：
+```{r echo=FALSE}
+qplot(x=total.sulfur.dioxide,data=wine_red,binwidth=10) +
+  ggtitle('Histogram of total.sulfur.dioxide)')
+
+```
+
+#### 上面total.sulfur.dioxide存在异常值，取其前99%的数绘制：
+
+```{r echo=FALSE}
+qplot(x=total.sulfur.dioxide,data=wine_red,binwidth=10) +
+  xlim(0,quantile(wine_red$total.sulfur.dioxide,.99)) +
+  ggtitle('Histogram of total.sulfur.dioxide(99%)')
+
+```
+
+#### 去掉异常值的total.sulfur.dioxide呈长尾分布
+
+
+
+#### 查看density的分布：
+
+```{r echo=FALSE}
+qplot(x=density,data=wine_red,binwidth=0.001) +
+  ggtitle('Histogram of density)')
+
+```
+
+#### density基本呈标准正态分布
+
+
+
+#### 查看PH分布：
+
+```{r echo=FALSE}
+qplot(x=pH,data=wine_red,binwidth=0.1) +
+  ggtitle('histogram of pH)')
+
+```
+
+#### PH也基本呈标准正态分布
+
+
+
+
+#### 查看sulphates的分布：
+
+```{r echo=FALSE}
+qplot(x=sulphates,data=wine_red,binwidth=0.1) +
+  ggtitle('histogram of sulphates)')
+
+```
+
+#### 上图可以看出，sulphates存在异常值，取sulphates前99%的值绘图：
+
+```{r echo=FALSE}
+qplot(x=sulphates,data=wine_red,binwidth=0.1) +
+  xlim(0,quantile(wine_red$sulphates,.99)) +
+  ggtitle('Histogram of sulphates(99%)')
+
+```
+
+#### 去掉异常值后sulphates呈右偏正态分布，大部分值在0.5~1之间。
+
+
+
+#### 查看alcohol的分布形态：
+```{r echo=FALSE}
+qplot(x=alcohol,data=wine_red,binwidth=0.5) +
+  ggtitle('histogram of alcohol')
+
+```
+
+#### alcohol呈右偏正态分布
+
+
+
+
+# 单变量分析
+
+
+### 你的数据集结构是什么？
+##### 数据集有1599个观测值，有12个特征，除了质量是整数型，其它都是浮点型。
+
+
+### 你的数据集内感兴趣的主要特性有哪些？
+##### 主要有质量，固定酸度，游离酸度，柠檬酸，残糖
+
+
+### 你认为数据集内哪些其他特征可以帮助你探索兴趣特点？
+##### 我觉得PH及酒精也有影响
+
+
+### 根据数据集内已有变量，你是否创建了任何新变量？
+##### 没有创建新的变量
+
+
+### 在已经探究的特性中，是否存在任何异常分布？你是否对数据进行一些操作，如清洁、调整或改变数据的形式？如果是，你为什么会这样做？
+##### 游离酸度有异常值，对其取前99%的数据，残糖呈现长尾分布，对其用对数转换，氯化物也是长尾分布，
+##### 对其对数转换后效果不太好，总二氧化硫有异常值，取前99%的数，硫酸盐也是取前99%的值
+
+
+
+
+
+# 双变量绘图选择
+
+#### 查看fixed.acidity和quality的关系：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(factor(quality), fixed.acidity)) +
+  geom_jitter( alpha = 0.3)  +
+  geom_boxplot( alpha = 0.5) +
+  ggtitle('Quality by fixed.acidity')
+
+```
+
+#### 从分布看，quality值的主要区间中fixed.acidity基本均匀分布，两者没有明显关系
+
+#### 计算fixed.acidity与quality的相关性系数：
+
+```{r echo=FALSE}
+with(wine_red,cor.test(fixed.acidity,quality))
+
+```
+
+
+
+
+#### 查看volatile.acidity和quality的关系：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(factor(quality), volatile.acidity)) +
+  geom_jitter( alpha = 0.3)  +
+  geom_boxplot( alpha = 0.5) +
+  ggtitle('Quality by volatile.acidity')
+
+```
+
+#### 从分布看，貌似呈负相关，但不明显
+
+#### 计算volatile.acidity和quality的相关性系数：
+```{r echo=FALSE}
+with(wine_red,cor.test(volatile.acidity,quality))
+
+```
+
+#### volatile.acidity和quality的相关系数为-0.39，与分布的观察结果一致
+
+
+
+#### 查看citric.acid和质量的关系：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(factor(quality), citric.acid)) +
+  geom_jitter( alpha = 0.3)  +
+  geom_boxplot( alpha = 0.5) +
+  ggtitle('Quality by citric.acid')
+
+```
+
+##### 看不出有明显的相关性
+
+#### 计算柠檬酸与质量的相关性：
+
+```{r echo=FALSE}
+with(wine_red,cor.test(citric.acid,quality))
+
+```
+
+#### 查看residual.sugar和quality的相关性：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(factor(quality), residual.sugar)) +
+  geom_jitter( alpha = 0.3)  +
+  geom_boxplot( alpha = 0.5) +
+  ylim(0,10) +
+  ggtitle('Quality by residual.sugar')
+
+```
+
+##### 残糖主要分布在质量5/6分上，没有相关性
+
+#### 计算残糖与质量的相关性：
+
+```{r echo=FALSE}
+with(wine_red,cor.test(residual.sugar,quality))
+
+```
+
+
+
+
+#### 查看Quality和chlorides的相关性：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(factor(quality), chlorides)) +
+  geom_jitter( alpha = 0.3)  +
+  geom_boxplot( alpha = 0.5) +
+  coord_cartesian(ylim = c(0.01, 0.15)) +
+  ggtitle('Quality vs. chlorides')
+
+```
+
+##### 看不出有相关性
+
+#### 计算Quality和chlorides的相关性：
+
+```{r echo=FALSE}
+with(wine_red,cor.test(chlorides,quality))
+
+```
+
+
+
+
+#### 查看free.sulfur.dioxide和quality的相关性：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(factor(quality), free.sulfur.dioxide)) +
+  geom_jitter( alpha = 0.3)  +
+  geom_boxplot( alpha = 0.5) +
+  ggtitle('Quality by free.sulfur.dioxide')
+
+```
+
+##### 明显没有相关性
+
+#### 计算free.sulfur.dioxide和quality的相关性：
+
+```{r echo=FALSE}
+with(wine_red,cor.test(free.sulfur.dioxide,quality))
+
+```
+
+
+#### 查看total.sulfur.dioxide和quality的相关性：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(factor(quality), total.sulfur.dioxide)) +
+  geom_jitter( alpha = 0.3)  +
+  geom_boxplot( alpha = 0.5) +
+  coord_cartesian(ylim = c(0, 150)) +
+  ggtitle('Quality by total.sulfur.dioxide')
+
+```
+
+#### total.sulfur.dioxide主要分布在质量评分5~7分上面，与质量没有明显的相关性。
+
+#### 计算total.sulfur.dioxide和quality的相关性：
+
+```{r echo=FALSE}
+with(wine_red,cor.test(total.sulfur.dioxide,quality))
+
+```
+
+#### 查看density和quality之间的关系：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(factor(quality), density)) +
+  geom_jitter( alpha = 0.3)  +
+  geom_boxplot( alpha = 0.5) +
+  ggtitle('Quality vs. density')
+
+```
+
+#### 密度与质量也没有明显的相关性，由于质量多集中于5~6分，散点也多位于此范围，密度基本分布均匀
+
+#### 计算density和quality的相关系数：
+
+```{r echo=FALSE}
+with(wine_red,cor.test(density,quality))
+
+```
+
+
+
+
+#### 查看pH和quality的关系：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(factor(quality), pH)) +
+  geom_jitter( alpha = 0.3)  +
+  geom_boxplot( alpha = 0.5) +
+  ggtitle('Quality vs. pH')
+
+```
+
+##### 看不出什么相关性
+
+#### 计算PH与质量的相关性：
+
+```{r echo=FALSE}
+with(wine_red,cor.test(pH,quality))
+
+```
+
+
+
+
+#### 查看alcohol和quality的相关性：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(factor(quality), alcohol)) +
+  geom_jitter( alpha = 0.3)  +
+  geom_boxplot( alpha = 0.5) +
+  ggtitle('Quality vs. alcohol')
+
+```
+
+##### 看起来像正相关
+
+#### 计算alcohol和quality的相关性：
+
+```{r echo=FALSE}
+with(wine_red,cor.test(alcohol,quality))
+
+```
+
+#### 绘制相关系数图：
+
+```{r fig.width = 10, fig.height = 10}
+#library(GGally)
+#ggpairs(wine_red,upper = list(continuous = wrap("cor", size = 4)))
+
+ggcorr(data = wine_red, hjust = 1, size = 4, color = "grey50", layout.exp = 2, 
+       label = TRUE, label_size = 4, label_round = 3, label_alpha = TRUE)
+```
+
+
+
+
+# 双变量分析
+
+### 探讨你在这部分探究中观察到的一些关系。这些感兴趣的特性与数据集内其他特性有什么区别？
+##### 质量与游离酸度及酒精度相关，而游离酸度又与柠檬酸相关，酒精度和密度相关
+
+
+### 你是否观察到主要特性与其他特性之间的有趣关系？
+##### 质量与游离酸度及酒精度相关
+
+
+### 你发现最强的关系是什么？
+##### 固定酸度和PH相关性是0.683
+
+
+
+
+# 多变量绘图选择
+
+
+#### 查看citric.acid， volatile.acidity， quality间的关系：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(volatile.acidity, citric.acid,color=factor(quality))) +
+  geom_jitter(alpha=0.2) +
+  ylim(0, 0.8) +
+  xlim(0,1.2) +
+  geom_smooth(method = "lm", se = FALSE,size=1) +
+  ggtitle('citric.acid vs. volatile.acidity vs. quality')
+
+```
+
+##### 不同的质量下，citric.acid和volatile.acidity成负相关，相关度为-0.55
+
+
+
+#### 查看alcohol， pH， quality变量间的关系：
+
+```{r echo=FALSE}
+ggplot(wine_red,aes(pH, alcohol, color=factor(quality))) +
+  geom_jitter(alpha=0.2) +
+  geom_smooth(method = "lm",se = FALSE) +
+  ggtitle('alcohol vs. pH vs. quality')
+```
+
+##### 不同质量下，alcohol和pH成正相关，相关度0.2，在不同质量下的相关度变化较大
+
+
+
+#### 查看density，alcohol，quality间的关系：
+
+```{r echo=FALSE}
+ggplot(aes(x = density, y = alcohol, color = factor(quality)), data = wine_red) +
+  geom_jitter(alpha = 0.2) +
+  scale_color_brewer(palette = "Blues") +
+  geom_smooth(method = "lm", se = FALSE,size=1) +
+  xlim(0.99, 1.005) +
+  ggtitle("density VS alcohol VS quality")
+```
+
+##### 不同质量下，density和alcohol呈负相关，相关系数-0.5
+
+
+
+
+
+# 多变量分析
+
+###  探讨你在这部分探究中观察到的一些关系。通过观察感兴趣的特性，是否存在相互促进的特性？
+#### 酒精度高的质量高，与pH关系不大。
+
+### 这些特性之间是否存在有趣或惊人的联系呢？
+#### 同一游离酸度下，柠檬酸高的质量低
+
+
+------
+
+# 定稿图与总结
+
+
+### 绘图一
+
+```{r echo=FALSE, Plot_One}
+ggplot(wine_red,aes(quality, alcohol)) +
+  geom_jitter( alpha = 0.3)  +
+  geom_boxplot(aes(color=factor(quality)),alpha = 0.5) +
+  geom_smooth(method = 'lm') +
+  ggtitle('Quality vs. alcohol')
+
+```
+
+### 描述一
+##### 酒精度与质量成正相关,酒精度越高，其质量评分也越高
+
+
+
+### 绘图二
+
+```{r echo=FALSE, Plot_Two}
+ggplot(aes(x=quality,y=volatile.acidity),data = wine_red) +
+  geom_jitter(alpha=0.3) +
+  geom_boxplot(aes(color=factor(quality)),alpha = 0.5) +
+  geom_smooth(method = 'lm') +
+  ggtitle('Quality vs. volatile.acidity')
+  
+```
+
+### 描述二
+##### 质量与游离酸度成明显负相关，游离酸度越高，其质量评分越低。
+
+
+
+
+### 绘图三
+
+```{r echo=FALSE, Plot_Three}
+ggplot(aes(x = density, y = alcohol, color = factor(quality)), data = wine_red) +
+  geom_jitter(alpha = 0.2) +
+  scale_color_brewer(palette = "Blues") +
+  geom_smooth(method = "lm", se = FALSE,size=1) +
+  xlim(0.99, 1.005) +
+  ggtitle("density VS alcohol VS quality")
+```
+
+### 描述三
+
+##### 不同质量下，density和alcohol呈负相关，相关系数-0.5
+
+------
+
+# 反思
+
+
+#### 对于葡萄酒，个人不是很了解，不像钻石那样，大家都知道越重越漂亮的越贵，所以对于葡萄酒质量影响因素的分析，只能挨个全部分析，对于单变量的分析，有的变量存在异常值，无法判断其是否错误，或者只是反常而已，因此只能舍弃，另外由于要取不同的组宽，不方便用循环进行，因此无奈的做了大量重复工作。
+#### 对于双变量分析，我个人不喜欢酒，只喜欢奶茶奶糖等，对于红酒，我觉得微酸，较甜，不苦是比较好的，可品酒师显然不这么认为，所以只能继续挨个探索，最终发现质量与游离酸度及酒精度有明显关系，而游离酸度又与柠檬酸明显相关，酒精度和密度明显相关，综上，质量可能与游离酸度,柠檬酸，酒精度，及密度相关。另外发现，固定酸度和PH相关性是0.683，算是强相关。
+#### 对与多变量分析，主要探索不同质量等级下其它强相关变量的相关度变化，发现酒精与PH在不同质量下的相关度变化较大。最后此数据集由于数据量略小，分析得出结论的过程不是很明显，另外变量都是数值型，没有分类变量，在多变量分析时数据略显得鸡肋。
+#### 对于此数据集，还可进一步探索存在异常值的变量在消除异常值或对变量进行对数转换后，再进行双变量和多变量的分析。
